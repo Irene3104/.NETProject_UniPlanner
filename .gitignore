@@ -1,0 +1,30 @@
+# Build results
+bin/
+obj/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Visual Studio caches
+.vs/
+
+# NuGet packages
+packages/
+*.nupkg
+*.snupkg
+project.lock.json
+yarn.lock
+
+# Logs
+*.log
+
+# Database files
+Data/uni.db
+
+# Other
+*.tmp
+*.Temp
+*.cache
