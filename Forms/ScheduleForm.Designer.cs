@@ -26,9 +26,7 @@ namespace UniPlanner.Forms
             this.lblDayOfWeek = new System.Windows.Forms.Label();
             this.cmbDayOfWeek = new System.Windows.Forms.ComboBox();
             this.lblSubject = new System.Windows.Forms.Label();
-            this.txtSubject = new System.Windows.Forms.TextBox();
-            this.lblSubjectName = new System.Windows.Forms.Label();
-            this.txtSubjectName = new System.Windows.Forms.TextBox();
+            this.cmbSubject = new System.Windows.Forms.ComboBox();
             this.lblStartTime = new System.Windows.Forms.Label();
             this.txtStartTime = new System.Windows.Forms.TextBox();
             this.lblEndTime = new System.Windows.Forms.Label();
@@ -86,9 +84,7 @@ namespace UniPlanner.Forms
             this.grpInput.Controls.Add(this.lblDayOfWeek);
             this.grpInput.Controls.Add(this.cmbDayOfWeek);
             this.grpInput.Controls.Add(this.lblSubject);
-            this.grpInput.Controls.Add(this.txtSubject);
-            this.grpInput.Controls.Add(this.lblSubjectName);
-            this.grpInput.Controls.Add(this.txtSubjectName);
+            this.grpInput.Controls.Add(this.cmbSubject);
             this.grpInput.Controls.Add(this.lblStartTime);
             this.grpInput.Controls.Add(this.txtStartTime);
             this.grpInput.Controls.Add(this.lblEndTime);
@@ -137,33 +133,19 @@ namespace UniPlanner.Forms
             this.lblSubject.Name = "lblSubject";
             this.lblSubject.Size = new System.Drawing.Size(90, 17);
             this.lblSubject.TabIndex = 2;
-            this.lblSubject.Text = "Subject Code:";
+            this.lblSubject.Text = "Subject:";
             // 
-            // txtSubject
+            // cmbSubject
             // 
-            this.txtSubject.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.txtSubject.Location = new System.Drawing.Point(390, 32);
-            this.txtSubject.Name = "txtSubject";
-            this.txtSubject.Size = new System.Drawing.Size(120, 25);
-            this.txtSubject.TabIndex = 3;
+            this.cmbSubject.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbSubject.DropDownWidth = 450;
+            this.cmbSubject.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.cmbSubject.FormattingEnabled = true;
+            this.cmbSubject.Location = new System.Drawing.Point(390, 32);
+            this.cmbSubject.Name = "cmbSubject";
+            this.cmbSubject.Size = new System.Drawing.Size(200, 25);
+            this.cmbSubject.TabIndex = 3;
             // 
-            // lblSubjectName
-            // 
-            this.lblSubjectName.AutoSize = true;
-            this.lblSubjectName.Font = new System.Drawing.Font("Segoe UI", 9.75F);
-            this.lblSubjectName.Location = new System.Drawing.Point(520, 35);
-            this.lblSubjectName.Name = "lblSubjectName";
-            this.lblSubjectName.Size = new System.Drawing.Size(95, 17);
-            this.lblSubjectName.TabIndex = 4;
-            this.lblSubjectName.Text = "Subject Name:";
-            // 
-            // txtSubjectName
-            // 
-            this.txtSubjectName.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.txtSubjectName.Location = new System.Drawing.Point(620, 32);
-            this.txtSubjectName.Name = "txtSubjectName";
-            this.txtSubjectName.Size = new System.Drawing.Size(250, 25);
-            this.txtSubjectName.TabIndex = 5;
             // 
             // lblStartTime
             // 
@@ -440,9 +422,7 @@ namespace UniPlanner.Forms
         private System.Windows.Forms.Label lblDayOfWeek;
         private System.Windows.Forms.ComboBox cmbDayOfWeek;
         private System.Windows.Forms.Label lblSubject;
-        private System.Windows.Forms.TextBox txtSubject;
-        private System.Windows.Forms.Label lblSubjectName;
-        private System.Windows.Forms.TextBox txtSubjectName;
+        private System.Windows.Forms.ComboBox cmbSubject;
         private System.Windows.Forms.Label lblStartTime;
         private System.Windows.Forms.TextBox txtStartTime;
         private System.Windows.Forms.Label lblEndTime;

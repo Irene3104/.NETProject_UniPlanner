@@ -25,15 +25,16 @@ namespace UniPlanner.Services
             using (var conn = new SQLiteConnection(ConnectionString))
             {
                 conn.Execute(
-                    @"INSERT INTO Tasks(Title, DueDate, Priority, IsCompleted, Subject, Description) 
-                      VALUES(@Title, @DueDate, @Priority, @IsCompleted, @Subject, @Description)",
+                    @"INSERT INTO Tasks(Title, DueDate, Priority, IsCompleted, Subject, SubjectName, Description) 
+                      VALUES(@Title, @DueDate, @Priority, @IsCompleted, @SubjectCode, @SubjectName, @Description)",
                     new
                     {
                         item.Title,
-                        DueDate = item.DueDate.ToString("yyyy-MM-dd"),
+                        DueDate = item.DueDate.ToString("dd-MM-yyyy"),
                         item.Priority,
                         IsCompleted = item.IsCompleted ? 1 : 0,
-                        item.Subject,
+                        SubjectCode = item.SubjectCode,
+                        item.SubjectName,
                         item.Description
                     }
                 );
@@ -50,16 +51,17 @@ namespace UniPlanner.Services
                 conn.Execute(
                     @"UPDATE Tasks 
                       SET Title = @Title, DueDate = @DueDate, Priority = @Priority, 
-                          IsCompleted = @IsCompleted, Subject = @Subject, Description = @Description
+                          IsCompleted = @IsCompleted, Subject = @SubjectCode, SubjectName = @SubjectName, Description = @Description
                       WHERE Id = @Id",
                     new
                     {
                         item.Id,
                         item.Title,
-                        DueDate = item.DueDate.ToString("yyyy-MM-dd"),
+                        DueDate = item.DueDate.ToString("dd-MM-yyyy"),
                         item.Priority,
                         IsCompleted = item.IsCompleted ? 1 : 0,
-                        item.Subject,
+                        SubjectCode = item.SubjectCode,
+                        item.SubjectName,
                         item.Description
                     }
                 );
@@ -113,6 +115,30 @@ namespace UniPlanner.Services
             using (var conn = new SQLiteConnection(ConnectionString))
             {
                 conn.Execute("UPDATE Tasks SET IsCompleted = 1 WHERE Id = @Id", new { Id = id });
+            }
+        }
+
+        /// <summary>
+        /// Mark task as incomplete
+        /// </summary>
+        public void MarkIncomplete(int id)
+        {
+            using (var conn = new SQLiteConnection(ConnectionString))
+            {
+                conn.Execute("UPDATE Tasks SET IsCompleted = 0 WHERE Id = @Id", new { Id = id });
+            }
+        }
+
+        /// <summary>
+        /// Toggle task completion status
+        /// </summary>
+        public void ToggleComplete(int id)
+        {
+            using (var conn = new SQLiteConnection(ConnectionString))
+            {
+                conn.Execute(@"UPDATE Tasks 
+                              SET IsCompleted = CASE WHEN IsCompleted = 1 THEN 0 ELSE 1 END 
+                              WHERE Id = @Id", new { Id = id });
             }
         }
 
@@ -187,9 +213,23 @@ namespace UniPlanner.Services
                 DueDate = DateTime.Parse(row.DueDate),
                 Priority = row.Priority,
                 IsCompleted = row.IsCompleted == 1,
-                Subject = row.Subject,
+                SubjectCode = row.Subject,
+                SubjectName = HasProperty(row, "SubjectName") ? row.SubjectName : null,
                 Description = row.Description
             };
+        }
+
+        private bool HasProperty(dynamic obj, string propertyName)
+        {
+            try
+            {
+                var value = ((IDictionary<string, object>)obj).ContainsKey(propertyName);
+                return value;
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }

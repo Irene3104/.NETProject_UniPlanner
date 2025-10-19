@@ -68,7 +68,12 @@ namespace UniPlanner.Forms
             var todo = lstTodos.Items[e.Index] as TodoItem;
             if (todo != null)
             {
-                _todoService.ToggleComplete(todo.Id);
+                // Update based on the new check state (e.NewValue tells us what it will be)
+                bool willBeChecked = (e.NewValue == CheckState.Checked);
+                
+                // Update the item directly
+                todo.IsCompleted = willBeChecked;
+                _todoService.Update(todo);
             }
         }
 

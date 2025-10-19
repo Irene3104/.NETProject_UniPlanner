@@ -119,8 +119,21 @@ namespace UniPlanner.Forms
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error adding subject: {ex.Message}", "Error", 
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                // Check if it's a duplicate subject code error
+                if (ex.Message.IndexOf("UNIQUE", StringComparison.OrdinalIgnoreCase) >= 0 || 
+                    ex.Message.IndexOf("constraint", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    MessageBox.Show(
+                        $"Subject code '{txtCode.Text.Trim().ToUpper()}' already exists.\nPlease use a different subject code.", 
+                        "Duplicate Subject Code", 
+                        MessageBoxButtons.OK, 
+                        MessageBoxIcon.Warning);
+                }
+                else
+                {
+                    MessageBox.Show($"Error adding subject: {ex.Message}", "Error", 
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
         }
 
@@ -155,8 +168,21 @@ namespace UniPlanner.Forms
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error updating subject: {ex.Message}", "Error", 
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                // Check if it's a duplicate subject code error
+                if (ex.Message.IndexOf("UNIQUE", StringComparison.OrdinalIgnoreCase) >= 0 || 
+                    ex.Message.IndexOf("constraint", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    MessageBox.Show(
+                        $"Subject code '{txtCode.Text.Trim().ToUpper()}' already exists.\nPlease use a different subject code.", 
+                        "Duplicate Subject Code", 
+                        MessageBoxButtons.OK, 
+                        MessageBoxIcon.Warning);
+                }
+                else
+                {
+                    MessageBox.Show($"Error updating subject: {ex.Message}", "Error", 
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
         }
 
@@ -173,10 +199,14 @@ namespace UniPlanner.Forms
             }
 
             var result = MessageBox.Show(
-                $"Are you sure you want to delete '{_selectedSubject.Code} - {_selectedSubject.Name}'?", 
+                $"Are you sure you want to delete '{_selectedSubject.Code} - {_selectedSubject.Name}'?\n\n" +
+                "⚠️ WARNING: This will also delete all related:\n" +
+                "• Class schedules for this subject\n" +
+                "• Tasks/assignments for this subject\n\n" +
+                "This action cannot be undone!", 
                 "Confirm Delete", 
                 MessageBoxButtons.YesNo, 
-                MessageBoxIcon.Question);
+                MessageBoxIcon.Warning);
 
             if (result == DialogResult.Yes)
             {

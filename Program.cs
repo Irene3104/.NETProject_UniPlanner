@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Globalization;
+using System.Threading;
 using System.Windows.Forms;
 using UniPlanner.Forms;
 using UniPlanner.Services;
@@ -21,6 +23,21 @@ namespace UniPlanner
                 // Enable visual styles for modern UI
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
+
+                // Configure global culture (Sydney: dd-MM-yyyy)
+                var culture = new CultureInfo("en-AU");
+                culture.DateTimeFormat.ShortDatePattern = "dd-MM-yyyy";
+                culture.DateTimeFormat.LongDatePattern = "dddd, dd MMMM yyyy";
+                culture.DateTimeFormat.FullDateTimePattern = "dddd, dd MMMM yyyy HH:mm";
+                culture.DateTimeFormat.FirstDayOfWeek = DayOfWeek.Monday;
+                culture.DateTimeFormat.AbbreviatedDayNames = new[] { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+                culture.DateTimeFormat.DayNames = new[] { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
+                culture.DateTimeFormat.ShortestDayNames = new[] { "Su", "Mo", "Tu", "We", "Th", "Fr", "Sa" };
+
+                Thread.CurrentThread.CurrentCulture = culture;
+                Thread.CurrentThread.CurrentUICulture = culture;
+                CultureInfo.DefaultThreadCurrentCulture = culture;
+                CultureInfo.DefaultThreadCurrentUICulture = culture;
 
                 // Configure data directory to project root Data folder
                 var projectDataDir = System.IO.Path.GetFullPath(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "Data"));

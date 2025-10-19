@@ -47,6 +47,7 @@ namespace UniPlanner.Forms
             this.colPriority = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.colSubject = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.colCompleted = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.colDescription = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.panelFilter = new System.Windows.Forms.Panel();
             this.lblFilter = new System.Windows.Forms.Label();
             this.cmbFilter = new System.Windows.Forms.ComboBox();
@@ -135,7 +136,9 @@ namespace UniPlanner.Forms
             // 
             // dtpDueDate
             // 
+            this.dtpDueDate.CustomFormat = "dd-MM-yyyy";
             this.dtpDueDate.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.dtpDueDate.Format = System.Windows.Forms.DateTimePickerFormat.Custom;
             this.dtpDueDate.Location = new System.Drawing.Point(620, 32);
             this.dtpDueDate.Name = "dtpDueDate";
             this.dtpDueDate.Size = new System.Drawing.Size(250, 25);
@@ -174,6 +177,7 @@ namespace UniPlanner.Forms
             // cmbSubject
             // 
             this.cmbSubject.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbSubject.DropDownWidth = 450;
             this.cmbSubject.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.cmbSubject.FormattingEnabled = true;
             this.cmbSubject.Location = new System.Drawing.Point(360, 72);
@@ -292,7 +296,8 @@ namespace UniPlanner.Forms
             this.colDueDate,
             this.colPriority,
             this.colSubject,
-            this.colCompleted});
+            this.colCompleted,
+            this.colDescription});
             this.lstTasks.Dock = System.Windows.Forms.DockStyle.Fill;
             this.lstTasks.Font = new System.Drawing.Font("Segoe UI", 9.75F);
             this.lstTasks.FullRowSelect = true;
@@ -341,6 +346,11 @@ namespace UniPlanner.Forms
             // 
             this.colCompleted.Text = "Done";
             this.colCompleted.Width = 60;
+            // 
+            // colDescription
+            // 
+            this.colDescription.Text = "Description";
+            this.colDescription.Width = 200;
             // 
             // panelFilter
             // 
@@ -456,6 +466,7 @@ namespace UniPlanner.Forms
         private System.Windows.Forms.ColumnHeader colPriority;
         private System.Windows.Forms.ColumnHeader colSubject;
         private System.Windows.Forms.ColumnHeader colCompleted;
+        private System.Windows.Forms.ColumnHeader colDescription;
         private System.Windows.Forms.Panel panelFilter;
         private System.Windows.Forms.Label lblFilter;
         private System.Windows.Forms.ComboBox cmbFilter;

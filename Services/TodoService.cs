@@ -1,119 +1,133 @@
-using Dapper;
 using System;
 using System.Collections.Generic;
-using System.Configuration;
-using System.Data.SQLite;
 using System.Linq;
 using UniPlanner.Models;
+using UniPlanner.Data;
 
 namespace UniPlanner.Services
 {
     /// <summary>
     /// Personal to-do list management service
+    /// NOW USING ENTITY FRAMEWORK for database operations
     /// </summary>
     public class TodoService : IRepository<TodoItem>
     {
-        private string ConnectionString => 
-            ConfigurationManager.ConnectionStrings["UniDb"]?.ConnectionString 
-            ?? "Data Source=Data\\uni.db;Version=3;foreign keys=true;";
 
+        /// <summary>
+        /// Add new todo item using Entity Framework
+        /// </summary>
         public void Add(TodoItem item)
         {
-            using (var conn = new SQLiteConnection(ConnectionString))
+            using (var context = new UniPlannerContext())
             {
-                conn.Execute(
-                    @"INSERT INTO Todos(Title, IsCompleted, Category, CreatedDate) 
-                      VALUES(@Title, @IsCompleted, @Category, @CreatedDate)",
-                    new
-                    {
-                        item.Title,
-                        IsCompleted = item.IsCompleted ? 1 : 0,
-                        item.Category,
-                        CreatedDate = item.CreatedDate.ToString("yyyy-MM-dd HH:mm:ss")
-                    }
-                );
+                context.Todos.Add(item);
+                context.SaveChanges();
             }
         }
 
+        /// <summary>
+        /// Update existing todo item using Entity Framework
+        /// </summary>
         public void Update(TodoItem item)
         {
-            using (var conn = new SQLiteConnection(ConnectionString))
+            using (var context = new UniPlannerContext())
             {
-                conn.Execute(
-                    @"UPDATE Todos 
-                      SET Title = @Title, IsCompleted = @IsCompleted, Category = @Category
-                      WHERE Id = @Id",
-                    new
-                    {
-                        item.Id,
-                        item.Title,
-                        IsCompleted = item.IsCompleted ? 1 : 0,
-                        item.Category
-                    }
-                );
+                var existing = context.Todos.Find(item.Id);
+                if (existing != null)
+                {
+                    existing.Title = item.Title;
+                    existing.IsCompleted = item.IsCompleted;
+                    existing.Category = item.Category;
+                    existing.UpdateModifiedDate();
+                    context.SaveChanges();
+                }
             }
         }
 
+        /// <summary>
+        /// Delete todo item using Entity Framework
+        /// </summary>
         public void Delete(int id)
         {
-            using (var conn = new SQLiteConnection(ConnectionString))
+            using (var context = new UniPlannerContext())
             {
-                conn.Execute("DELETE FROM Todos WHERE Id = @Id", new { Id = id });
+                var item = context.Todos.Find(id);
+                if (item != null)
+                {
+                    context.Todos.Remove(item);
+                    context.SaveChanges();
+                }
             }
         }
 
+        /// <summary>
+        /// Get todo item by ID using Entity Framework
+        /// </summary>
         public TodoItem GetById(int id)
         {
-            using (var conn = new SQLiteConnection(ConnectionString))
+            using (var context = new UniPlannerContext())
             {
-                var result = conn.QueryFirstOrDefault<dynamic>(
-                    "SELECT * FROM Todos WHERE Id = @Id", 
-                    new { Id = id }
-                );
-                return result != null ? MapToTodoItem(result) : null;
+                return context.Todos.Find(id);
             }
         }
 
+        /// <summary>
+        /// Get all todo items using Entity Framework with LINQ
+        /// </summary>
         public IReadOnlyList<TodoItem> GetAll()
         {
-            using (var conn = new SQLiteConnection(ConnectionString))
+            using (var context = new UniPlannerContext())
             {
-                var results = conn.Query<dynamic>("SELECT * FROM Todos ORDER BY IsCompleted, CreatedDate DESC");
-                return results.Select(MapToTodoItem).ToList();
+                return context.Todos
+                    .OrderBy(t => t.IsCompleted)
+                    .ThenByDescending(t => t.CreatedDate)
+                    .ToList();
             }
         }
 
+        /// <summary>
+        /// Toggle todo completion status using Entity Framework
+        /// </summary>
         public void ToggleComplete(int id)
         {
-            using (var conn = new SQLiteConnection(ConnectionString))
+            using (var context = new UniPlannerContext())
             {
-                conn.Execute(
-                    "UPDATE Todos SET IsCompleted = NOT IsCompleted WHERE Id = @Id", 
-                    new { Id = id }
-                );
+                var item = context.Todos.Find(id);
+                if (item != null)
+                {
+                    item.IsCompleted = !item.IsCompleted;
+                    item.UpdateModifiedDate();
+                    context.SaveChanges();
+                }
             }
         }
 
+        /// <summary>
+        /// Get active (incomplete) todos using Entity Framework with LINQ
+        /// </summary>
         public IReadOnlyList<TodoItem> GetActive()
         {
-            return GetAll().Where(t => !t.IsCompleted).ToList();
+            using (var context = new UniPlannerContext())
+            {
+                return context.Todos
+                    .Where(t => !t.IsCompleted)
+                    .OrderByDescending(t => t.CreatedDate)
+                    .ToList();
+            }
         }
 
+        /// <summary>
+        /// Get completed todos using Entity Framework with LINQ
+        /// </summary>
         public IReadOnlyList<TodoItem> GetCompleted()
         {
-            return GetAll().Where(t => t.IsCompleted).ToList();
-        }
-
-        private TodoItem MapToTodoItem(dynamic row)
-        {
-            return new TodoItem
+            using (var context = new UniPlannerContext())
             {
-                Id = (int)(long)row.Id,
-                Title = row.Title,
-                IsCompleted = row.IsCompleted == 1,
-                Category = row.Category,
-                CreatedDate = DateTime.Parse(row.CreatedDate)
-            };
+                return context.Todos
+                    .Where(t => t.IsCompleted)
+                    .OrderByDescending(t => t.CreatedDate)
+                    .ToList();
+            }
         }
     }
 }

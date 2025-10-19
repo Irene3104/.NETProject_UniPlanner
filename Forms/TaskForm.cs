@@ -53,8 +53,8 @@ namespace UniPlanner.Forms
             });
             cmbFilter.SelectedIndex = 0; // All Tasks
 
-            // Set default date
-            dtpDueDate.Value = DateTime.Today.AddDays(1);
+            // Set default date to Sydney today
+            dtpDueDate.Value = TimeZoneHelper.GetSydneyNow().Date;
         }
 
         /// <summary>
@@ -89,25 +89,24 @@ namespace UniPlanner.Forms
                     .GroupBy(s => s.Code)
                     .ToDictionary(g => g.Key, g => g.First());
 
-                var sydneyTimeZone = GetSydneyTimeZone();
-                var todaySydney = ConvertToSydney(DateTime.Now, sydneyTimeZone).Date;
+                var todaySydney = TimeZoneHelper.GetSydneyNow().Date;
 
                 foreach (var task in tasks)
                 {
-                    var dueSydney = ConvertToSydney(task.DueDate, sydneyTimeZone);
+                    var dueSydney = ConvertToSydney(task.DueDate, TimeZoneHelper.GetSydneyTimeZone());
                     var dueDisplay = FormatDueDisplay(dueSydney, todaySydney);
-                    var dueDateDisplay = dueSydney.ToString("dd/MM/yyyy");
+                    var dueDateDisplay = dueSydney.ToString("dd-MM-yyyy");
 
                     string subjectDisplay = string.Empty;
-                    if (!string.IsNullOrWhiteSpace(task.Subject))
+                    if (!string.IsNullOrWhiteSpace(task.SubjectCode))
                     {
-                        if (subjects.TryGetValue(task.Subject, out var subject))
+                        if (subjects.TryGetValue(task.SubjectCode, out var subject))
                         {
                             subjectDisplay = subject.Name;
                         }
                         else
                         {
-                            subjectDisplay = task.Subject;
+                            subjectDisplay = task.SubjectCode;
                         }
                     }
 
@@ -119,12 +118,13 @@ namespace UniPlanner.Forms
                         dueDateDisplay,
                         task.Priority,
                         subjectDisplay,
-                        task.IsCompleted ? "✓" : ""
+                        task.IsCompleted ? "✓" : "",
+                        task.Description ?? ""
                     });
 
                     if (task.IsCompleted)
                         item.ForeColor = Color.Green;
-                    else if (IsOverdue(task.DueDate, sydneyTimeZone))
+                    else if (IsOverdue(task.DueDate, TimeZoneInfo.Utc))
                         item.ForeColor = Color.Red;
                     else if (task.Priority == "High")
                         item.ForeColor = Color.DarkOrange;
@@ -190,9 +190,11 @@ namespace UniPlanner.Forms
             {
                 // Get selected subject
                 string subjectText = "";
+                string subjectName = "";
                 if (cmbSubject.SelectedIndex > 0 && cmbSubject.SelectedItem is SubjectItem selectedSubject)
                 {
                     subjectText = selectedSubject.Code;
+                    subjectName = selectedSubject.Name;
                 }
 
                 var task = new TaskItem
@@ -200,7 +202,8 @@ namespace UniPlanner.Forms
                     Title = txtTitle.Text.Trim(),
                     DueDate = dtpDueDate.Value.Date,
                     Priority = cmbPriority.SelectedItem.ToString(),
-                    Subject = subjectText,
+                    SubjectCode = subjectText,
+                    SubjectName = subjectName,
                     Description = txtDescription.Text.Trim(),
                     IsCompleted = false
                 };
@@ -237,15 +240,18 @@ namespace UniPlanner.Forms
             {
                 // Get selected subject
                 string subjectText = "";
+                string subjectName = "";
                 if (cmbSubject.SelectedIndex > 0 && cmbSubject.SelectedItem is SubjectItem selectedSubject)
                 {
                     subjectText = selectedSubject.Code;
+                    subjectName = selectedSubject.Name;
                 }
 
                 _selectedItem.Title = txtTitle.Text.Trim();
                 _selectedItem.DueDate = dtpDueDate.Value.Date;
                 _selectedItem.Priority = cmbPriority.SelectedItem.ToString();
-                _selectedItem.Subject = subjectText;
+                _selectedItem.SubjectCode = subjectText;
+                _selectedItem.SubjectName = subjectName;
                 _selectedItem.Description = txtDescription.Text.Trim();
 
                 _taskService.Update(_selectedItem);
@@ -307,7 +313,7 @@ namespace UniPlanner.Forms
         {
             if (lstTasks.SelectedItems.Count == 0)
             {
-                MessageBox.Show("Please select a task to mark as complete.", "Warning", 
+                MessageBox.Show("Please select a task to mark/unmark.", "Warning", 
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
@@ -315,16 +321,27 @@ namespace UniPlanner.Forms
             try
             {
                 int id = Convert.ToInt32(lstTasks.SelectedItems[0].SubItems[0].Text);
-                _taskService.MarkComplete(id);
                 
-                MessageBox.Show("Task marked as complete!", "Success", 
+                // Toggle completion status
+                _taskService.ToggleComplete(id);
+                
+                // Get updated task to check new status
+                var updatedTask = _taskService.GetById(id);
+                string statusMessage = updatedTask.IsCompleted 
+                    ? "Task marked as complete!" 
+                    : "Task marked as incomplete!";
+                
+                MessageBox.Show(statusMessage, "Success", 
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 
                 LoadTasks();
+                
+                // Update button text based on new status
+                UpdateMarkCompleteButton(updatedTask.IsCompleted);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error marking task: {ex.Message}", "Error", 
+                MessageBox.Show($"Error updating task status: {ex.Message}", "Error", 
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -349,23 +366,55 @@ namespace UniPlanner.Forms
                     txtDescription.Text = _selectedItem.Description ?? "";
                     
                     // Set subject combo
-                    if (!string.IsNullOrEmpty(_selectedItem.Subject))
+                    if (!string.IsNullOrEmpty(_selectedItem.SubjectCode))
                     {
-                        var subject = _subjectService.GetByCode(_selectedItem.Subject);
-                        if (subject != null)
+                        // Find the subject in the combo box by code
+                        bool found = false;
+                        for (int i = 1; i < cmbSubject.Items.Count; i++) // Skip index 0 (-- No Subject --)
                         {
-                            cmbSubject.SelectedItem = subject;
+                            if (cmbSubject.Items[i] is SubjectItem subject && subject.Code == _selectedItem.SubjectCode)
+                            {
+                                cmbSubject.SelectedIndex = i;
+                                found = true;
+                                break;
+                            }
                         }
-                        else
+                        
+                        if (!found)
                         {
-                            cmbSubject.SelectedIndex = 0;
+                            cmbSubject.SelectedIndex = 0; // -- No Subject --
                         }
                     }
                     else
                     {
-                        cmbSubject.SelectedIndex = 0;
+                        cmbSubject.SelectedIndex = 0; // -- No Subject --
                     }
+                    
+                    // Update Mark Complete button text based on task status
+                    UpdateMarkCompleteButton(_selectedItem.IsCompleted);
                 }
+            }
+            else
+            {
+                // Reset button text when nothing is selected
+                btnMarkComplete.Text = "✓ Mark Complete";
+            }
+        }
+
+        /// <summary>
+        /// Update Mark Complete button text based on completion status
+        /// </summary>
+        private void UpdateMarkCompleteButton(bool isCompleted)
+        {
+            if (isCompleted)
+            {
+                btnMarkComplete.Text = "↩ Unmark Complete";
+                btnMarkComplete.BackColor = Color.FromArgb(243, 156, 18); // Orange color
+            }
+            else
+            {
+                btnMarkComplete.Text = "✓ Mark Complete";
+                btnMarkComplete.BackColor = Color.FromArgb(142, 68, 173); // Purple color
             }
         }
 
@@ -412,6 +461,10 @@ namespace UniPlanner.Forms
             cmbPriority.SelectedIndex = 1;
             dtpDueDate.Value = DateTime.Today.AddDays(1);
             _selectedItem = null;
+            
+            // Reset Mark Complete button to default state
+            btnMarkComplete.Text = "✓ Mark Complete";
+            btnMarkComplete.BackColor = Color.FromArgb(142, 68, 173); // Purple color
         }
 
         private void btnClear_Click(object sender, EventArgs e)
@@ -426,28 +479,12 @@ namespace UniPlanner.Forms
 
         private TimeZoneInfo GetSydneyTimeZone()
         {
-            try
-            {
-                return TimeZoneInfo.FindSystemTimeZoneById("AUS Eastern Standard Time");
-            }
-            catch (TimeZoneNotFoundException)
-            {
-                return TimeZoneInfo.FindSystemTimeZoneById("Australia/Sydney");
-            }
-            catch (InvalidTimeZoneException)
-            {
-                return TimeZoneInfo.Local;
-            }
+            return TimeZoneHelper.GetSydneyTimeZone();
         }
 
         private DateTime ConvertToSydney(DateTime date, TimeZoneInfo tz)
         {
-            var source = date;
-            if (source.Kind == DateTimeKind.Unspecified)
-            {
-                source = DateTime.SpecifyKind(source, DateTimeKind.Local);
-            }
-            return TimeZoneInfo.ConvertTime(source, tz);
+            return TimeZoneHelper.ConvertToSydney(date, tz);
         }
 
         private string FormatDueDisplay(DateTime dueSydney, DateTime todaySydney)
@@ -455,26 +492,24 @@ namespace UniPlanner.Forms
             var days = (dueSydney.Date - todaySydney).Days;
             string relative;
 
-            if (days == 0) relative = "Today";
+            if (days == 0) relative = "today";
             else if (days == 1) relative = "Tomorrow";
             else if (days == -1) relative = "Yesterday";
             else if (days > 1 && days <= 7) relative = $"In {days} days";
             else if (days < -1 && days >= -7) relative = $"{Math.Abs(days)} days ago";
-            else relative = dueSydney.ToString("dd/MM/yyyy");
+            else relative = dueSydney.ToString("dd-MM-yyyy");
 
-            if (relative == dueSydney.ToString("dd/MM/yyyy"))
+            if (relative == dueSydney.ToString("dd-MM-yyyy"))
             {
                 return relative;
             }
 
-            return $"{dueSydney:dd/MM/yyyy} ({relative})";
+            return $"{dueSydney:dd-MM-yyyy} ({relative})";
         }
 
         private bool IsOverdue(DateTime dueDate, TimeZoneInfo tz)
         {
-            var dueSydney = ConvertToSydney(dueDate, tz).Date;
-            var todaySydney = ConvertToSydney(DateTime.Now, tz).Date;
-            return dueSydney < todaySydney;
+            return TimeZoneHelper.IsOverdue(dueDate, tz);
         }
     }
 }

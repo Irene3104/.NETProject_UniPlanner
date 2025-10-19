@@ -1,4 +1,5 @@
 using Dapper;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data.SQLite;
@@ -24,11 +25,11 @@ namespace UniPlanner.Services
             using (var conn = new SQLiteConnection(ConnectionString))
             {
                 var subjectService = new SubjectService();
-                var subject = subjectService.UpsertFromSchedule(item.Subject, item.SubjectName, item.Instructor);
+                var subject = subjectService.UpsertFromSchedule(item.SubjectCode, item.SubjectName, item.Instructor);
 
                 if (subject != null)
                 {
-                    item.Subject = subject.Code;
+                    item.SubjectCode = subject.Code;
                     item.SubjectName = subject.Name;
 
                     if (string.IsNullOrWhiteSpace(item.Instructor))
@@ -38,9 +39,18 @@ namespace UniPlanner.Services
                 }
 
                 conn.Execute(
-                    @"INSERT INTO Schedule(DayOfWeek, Subject, SubjectName, StartTime, EndTime, Location, Instructor) 
-                      VALUES(@DayOfWeek, @Subject, @SubjectName, @StartTime, @EndTime, @Location, @Instructor)",
-                    item
+                    @"INSERT INTO Schedule(DayOfWeek, SubjectCode, SubjectName, StartTime, EndTime, Location, Instructor) 
+                      VALUES(@DayOfWeek, @SubjectCode, @SubjectName, @StartTime, @EndTime, @Location, @Instructor)",
+                    new
+                    {
+                        item.DayOfWeek,
+                        item.SubjectCode,
+                        item.SubjectName,
+                        item.StartTime,
+                        item.EndTime,
+                        item.Location,
+                        item.Instructor
+                    }
                 );
             }
         }
@@ -53,11 +63,11 @@ namespace UniPlanner.Services
             using (var conn = new SQLiteConnection(ConnectionString))
             {
                 var subjectService = new SubjectService();
-                var subject = subjectService.UpsertFromSchedule(item.Subject, item.SubjectName, item.Instructor);
+                var subject = subjectService.UpsertFromSchedule(item.SubjectCode, item.SubjectName, item.Instructor);
 
                 if (subject != null)
                 {
-                    item.Subject = subject.Code;
+                    item.SubjectCode = subject.Code;
                     item.SubjectName = subject.Name;
 
                     if (string.IsNullOrWhiteSpace(item.Instructor))
@@ -68,11 +78,21 @@ namespace UniPlanner.Services
 
                 conn.Execute(
                     @"UPDATE Schedule 
-                      SET DayOfWeek = @DayOfWeek, Subject = @Subject, SubjectName = @SubjectName,
+                      SET DayOfWeek = @DayOfWeek, SubjectCode = @SubjectCode, SubjectName = @SubjectName,
                           StartTime = @StartTime, EndTime = @EndTime, 
                           Location = @Location, Instructor = @Instructor
                       WHERE Id = @Id",
-                    item
+                    new
+                    {
+                        item.Id,
+                        item.DayOfWeek,
+                        item.SubjectCode,
+                        item.SubjectName,
+                        item.StartTime,
+                        item.EndTime,
+                        item.Location,
+                        item.Instructor
+                    }
                 );
             }
         }
@@ -141,7 +161,7 @@ namespace UniPlanner.Services
         public IReadOnlyList<ScheduleItem> GetBySubject(string subject)
         {
             return GetAll()
-                .Where(s => s.Subject.Contains(subject))
+                .Where(s => s.SubjectCode.Contains(subject))
                 .OrderBy(s => s.DayOfWeek)
                 .ThenBy(s => s.StartTime)
                 .ToList();
@@ -164,6 +184,77 @@ namespace UniPlanner.Services
             return GetAll()
                 .GroupBy(s => s.DayOfWeek)
                 .ToDictionary(g => g.Key, g => g.OrderBy(s => s.StartTime).ToList());
+        }
+
+        /// <summary>
+        /// Check if a schedule conflicts with existing schedules
+        /// </summary>
+        public bool HasTimeConflict(ScheduleItem newSchedule, int excludeId = 0)
+        {
+            if (!TimeSpan.TryParse(newSchedule.StartTime, out var newStart) ||
+                !TimeSpan.TryParse(newSchedule.EndTime, out var newEnd))
+            {
+                return false; // Invalid time format
+            }
+
+            var existingSchedules = GetByDay(newSchedule.DayOfWeek)
+                .Where(s => s.Id != excludeId); // Exclude current item when updating
+
+            foreach (var existing in existingSchedules)
+            {
+                if (!TimeSpan.TryParse(existing.StartTime, out var existingStart) ||
+                    !TimeSpan.TryParse(existing.EndTime, out var existingEnd))
+                {
+                    continue;
+                }
+
+                // Check if times overlap
+                // Conflict occurs if:
+                // 1. New start time is between existing start and end
+                // 2. New end time is between existing start and end
+                // 3. New schedule completely encompasses existing schedule
+                if ((newStart >= existingStart && newStart < existingEnd) ||
+                    (newEnd > existingStart && newEnd <= existingEnd) ||
+                    (newStart <= existingStart && newEnd >= existingEnd))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Get conflicting schedule details for user-friendly message
+        /// </summary>
+        public ScheduleItem GetConflictingSchedule(ScheduleItem newSchedule, int excludeId = 0)
+        {
+            if (!TimeSpan.TryParse(newSchedule.StartTime, out var newStart) ||
+                !TimeSpan.TryParse(newSchedule.EndTime, out var newEnd))
+            {
+                return null;
+            }
+
+            var existingSchedules = GetByDay(newSchedule.DayOfWeek)
+                .Where(s => s.Id != excludeId);
+
+            foreach (var existing in existingSchedules)
+            {
+                if (!TimeSpan.TryParse(existing.StartTime, out var existingStart) ||
+                    !TimeSpan.TryParse(existing.EndTime, out var existingEnd))
+                {
+                    continue;
+                }
+
+                if ((newStart >= existingStart && newStart < existingEnd) ||
+                    (newEnd > existingStart && newEnd <= existingEnd) ||
+                    (newStart <= existingStart && newEnd >= existingEnd))
+                {
+                    return existing;
+                }
+            }
+
+            return null;
         }
     }
 }

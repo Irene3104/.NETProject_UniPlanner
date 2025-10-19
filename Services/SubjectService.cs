@@ -50,13 +50,48 @@ namespace UniPlanner.Services
         }
 
         /// <summary>
-        /// Delete subject by ID
+        /// Delete subject by ID and cascade delete related schedules and tasks
         /// </summary>
         public void Delete(int id)
         {
             using (var conn = new SQLiteConnection(ConnectionString))
             {
-                conn.Execute("DELETE FROM Subjects WHERE Id = @Id", new { Id = id });
+                conn.Open();
+                using (var transaction = conn.BeginTransaction())
+                {
+                    try
+                    {
+                        // Get subject code before deletion
+                        var subject = conn.QueryFirstOrDefault<SubjectItem>(
+                            "SELECT * FROM Subjects WHERE Id = @Id", 
+                            new { Id = id });
+                        
+                        if (subject != null)
+                        {
+                            // Delete related schedules
+                            conn.Execute(
+                                "DELETE FROM Schedule WHERE SubjectCode = @SubjectCode", 
+                                new { SubjectCode = subject.Code });
+                            
+                            // Delete related tasks
+                            conn.Execute(
+                                "DELETE FROM Tasks WHERE Subject = @SubjectCode", 
+                                new { SubjectCode = subject.Code });
+                            
+                            // Delete the subject itself
+                            conn.Execute(
+                                "DELETE FROM Subjects WHERE Id = @Id", 
+                                new { Id = id });
+                        }
+                        
+                        transaction.Commit();
+                    }
+                    catch
+                    {
+                        transaction.Rollback();
+                        throw;
+                    }
+                }
             }
         }
 

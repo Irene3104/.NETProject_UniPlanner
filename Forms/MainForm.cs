@@ -73,7 +73,7 @@ namespace UniPlanner.Forms
                 );
 
                 var timeSlots = new List<TimeSpan>();
-                for (var time = TimeSpan.FromHours(8); time < TimeSpan.FromHours(18); time = time.Add(TimeSpan.FromHours(1)))
+                for (var time = TimeSpan.FromHours(8); time <= TimeSpan.FromHours(23); time = time.Add(TimeSpan.FromHours(1)))
                 {
                     timeSlots.Add(time);
                 }
@@ -109,14 +109,14 @@ namespace UniPlanner.Forms
                         var endMinutes = (overlapEnd - slot).TotalMinutes;
 
                         SubjectItem subjectItem = null;
-                        if (!string.IsNullOrWhiteSpace(scheduleItem.Subject) && subjectLookup.TryGetValue(scheduleItem.Subject, out var foundSubject))
+                        if (!string.IsNullOrWhiteSpace(scheduleItem.SubjectCode) && subjectLookup.TryGetValue(scheduleItem.SubjectCode, out var foundSubject))
                         {
                             subjectItem = foundSubject;
                         }
-
+                        
                         var subjectName = !string.IsNullOrWhiteSpace(scheduleItem.SubjectName)
                             ? scheduleItem.SubjectName
-                            : subjectItem?.Name ?? scheduleItem.Subject;
+                            : subjectItem?.Name ?? scheduleItem.SubjectCode;
 
                         var location = scheduleItem.Location ?? string.Empty;
                         var displayText = string.IsNullOrWhiteSpace(location)
@@ -155,6 +155,9 @@ namespace UniPlanner.Forms
 
                 dgvTimetable.CellPainting -= DgvTimetable_CellPainting;
                 dgvTimetable.CellPainting += DgvTimetable_CellPainting;
+
+                dgvTimetable.SelectionChanged -= DgvTimetable_SelectionChanged;
+                dgvTimetable.SelectionChanged += DgvTimetable_SelectionChanged;
             }
             catch (Exception ex)
             {
@@ -187,7 +190,27 @@ namespace UniPlanner.Forms
                 foreach (var task in tasks)
                 {
                     var item = new ListViewItem(task.Title);
-                    item.SubItems.Add(task.Subject ?? "");
+                    
+                    // Use SubjectName if available, otherwise lookup by code
+                    string subjectName = "";
+                    if (!string.IsNullOrWhiteSpace(task.SubjectName))
+                    {
+                        subjectName = task.SubjectName;
+                    }
+                    else if (!string.IsNullOrWhiteSpace(task.SubjectCode))
+                    {
+                        try
+                        {
+                            var subject = _subjectService.GetByCode(task.SubjectCode);
+                            subjectName = subject?.Name ?? task.SubjectCode;
+                        }
+                        catch
+                        {
+                            subjectName = task.SubjectCode; // Fallback to code if lookup fails
+                        }
+                    }
+                    
+                    item.SubItems.Add(subjectName);
                     item.SubItems.Add(task.Priority);
                     
                     if (task.Priority == "High")
@@ -207,7 +230,7 @@ namespace UniPlanner.Forms
         {
             lstTodoPreview.Items.Clear();
 
-            var todos = _todoService.GetActive().Take(5).ToList();
+            var todos = _todoService.GetAll().Take(10).ToList();
 
             if (todos.Count == 0)
             {
@@ -217,7 +240,51 @@ namespace UniPlanner.Forms
             {
                 foreach (var todo in todos)
                 {
-                    lstTodoPreview.Items.Add($"☐ {todo.Title}");
+                    int index = lstTodoPreview.Items.Add(todo);
+                    lstTodoPreview.SetItemChecked(index, todo.IsCompleted);
+                }
+            }
+        }
+
+        private void lstTodoPreview_ItemCheck(object sender, ItemCheckEventArgs e)
+        {
+            // Prevent checking items in preview mode
+            if (lstTodoPreview.Items[e.Index] is string)
+            {
+                e.NewValue = e.CurrentValue;
+                return;
+            }
+
+            var todo = lstTodoPreview.Items[e.Index] as TodoItem;
+            if (todo != null)
+            {
+                // Update based on the new check state (e.NewValue tells us what it will be)
+                bool willBeChecked = (e.NewValue == CheckState.Checked);
+                
+                // Update the item directly
+                todo.IsCompleted = willBeChecked;
+                _todoService.Update(todo);
+            }
+        }
+
+        private void lstTodoPreview_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            // Clear selection to prevent blue background
+            lstTodoPreview.ClearSelected();
+        }
+
+        private void DgvTimetable_SelectionChanged(object sender, EventArgs e)
+        {
+            // Clear selection for empty cells
+            if (dgvTimetable.SelectedCells.Count > 0)
+            {
+                foreach (DataGridViewCell cell in dgvTimetable.SelectedCells)
+                {
+                    // Deselect if it's a time column or empty cell
+                    if (cell.ColumnIndex <= 0 || cell.Tag == null)
+                    {
+                        cell.Selected = false;
+                    }
                 }
             }
         }
@@ -227,11 +294,12 @@ namespace UniPlanner.Forms
         /// </summary>
         private void UpdateWelcomeMessage()
         {
-            var today = DateTime.Today;
-            var dayName = today.ToString("dddd");
-            var dateStr = today.ToString("MMMM dd, yyyy");
+            var sydneyNow = TimeZoneHelper.GetSydneyNow();
+            var dayName = sydneyNow.ToString("dddd");
+            var dateStr = sydneyNow.ToString("MMMM dd, yyyy");
+            var timeStr = sydneyNow.ToString("HH:mm");
             
-            lblWelcome.Text = $"{dayName}, {dateStr}";
+            lblWelcome.Text = $"{dayName}, {dateStr} ({timeStr} Sydney)";
         }
 
         // Navigation button handlers
@@ -258,13 +326,8 @@ namespace UniPlanner.Forms
             using (var form = new TodoForm())
             {
                 form.ShowDialog();
-                LoadDashboard();
+                LoadTodoPreview(); // Reload to-do list after closing the form
             }
-        }
-
-        private void btnRefresh_Click(object sender, EventArgs e)
-        {
-            LoadDashboard();
         }
 
         private void MainForm_Load(object sender, EventArgs e)
@@ -281,6 +344,11 @@ namespace UniPlanner.Forms
             }
         }
 
+        private void btnRefresh_Click(object sender, EventArgs e)
+        {
+            LoadDashboard();
+        }
+
         /// <summary>
         /// Show detailed information when clicking on a timetable cell
         /// </summary>
@@ -291,11 +359,24 @@ namespace UniPlanner.Forms
 
             var cell = dgvTimetable.Rows[e.RowIndex].Cells[e.ColumnIndex];
             
-            // Check if cell has schedule data
-            if (cell.Tag is Models.ScheduleItem scheduleItem)
+            // Only allow clicking on cells with schedule data
+            if (cell.Tag == null) return;
+            
+            // Retrieve schedule from custom painting info
+            ScheduleItem scheduleItem = null;
+            if (cell.Tag is ScheduleCellInfo info)
+            {
+                scheduleItem = info.Schedule;
+            }
+            else if (cell.Tag is ScheduleItem direct)
+            {
+                scheduleItem = direct;
+            }
+
+            if (scheduleItem != null)
             {
                 // Get subject details
-                var subject = _subjectService.GetByCode(scheduleItem.Subject);
+                var subject = _subjectService.GetByCode(scheduleItem.SubjectCode);
                 
                 // Show custom popup form
                 using (var detailForm = new ClassDetailForm(scheduleItem, subject))
@@ -368,24 +449,30 @@ namespace UniPlanner.Forms
 
                 var color = GetSubjectColor(info.Subject?.Color);
 
-                var width = e.CellBounds.Width - 4;
-                var height = e.CellBounds.Height - 4;
-                var x = e.CellBounds.X + 2;
-                var y = e.CellBounds.Y + 2;
+                const float margin = 1f;
+                var contentRect = new RectangleF(
+                    e.CellBounds.X + margin,
+                    e.CellBounds.Y + margin,
+                    e.CellBounds.Width - margin * 2,
+                    e.CellBounds.Height - margin * 2);
 
                 var startRatio = Math.Max(0, info.StartMinutes / 60.0);
                 var endRatio = Math.Min(1, info.EndMinutes / 60.0);
 
-                var fillHeight = height * (endRatio - startRatio);
-                var fillY = y + height * startRatio;
+                var fillHeight = contentRect.Height * (endRatio - startRatio);
+                var fillY = contentRect.Y + contentRect.Height * startRatio;
+
+                RectangleF? coloredArea = null;
 
                 if (fillHeight > 0)
                 {
-                    var fillRect = new RectangleF(x, (float)fillY, width, (float)fillHeight);
+                    var fillRect = new RectangleF(contentRect.X, (float)fillY, contentRect.Width, (float)fillHeight);
                     using (var fillBrush = new SolidBrush(color))
                     {
                         e.Graphics.FillRectangle(fillBrush, fillRect);
                     }
+
+                    coloredArea = fillRect;
                 }
 
                 if (info.ShowText && !string.IsNullOrWhiteSpace(info.DisplayText))
@@ -393,8 +480,22 @@ namespace UniPlanner.Forms
                     var textColor = GetContrastColor(color);
                     using (var textBrush = new SolidBrush(textColor))
                     {
-                        var rect = new RectangleF(e.CellBounds.X + 4, e.CellBounds.Y + 4,
-                            e.CellBounds.Width - 8, e.CellBounds.Height - 8);
+                        RectangleF rect;
+
+                        if (coloredArea.HasValue && coloredArea.Value.Height > 4)
+                        {
+                            var area = coloredArea.Value;
+                            rect = new RectangleF(
+                                area.X + 4,
+                                area.Y + 4,
+                                Math.Max(4, area.Width - 8),
+                                Math.Max(4, area.Height - 8));
+                        }
+                        else
+                        {
+                            rect = new RectangleF(contentRect.X + 4, contentRect.Y + 4,
+                                Math.Max(4, contentRect.Width - 8), Math.Max(4, contentRect.Height - 8));
+                        }
 
                         var sf = new StringFormat
                         {

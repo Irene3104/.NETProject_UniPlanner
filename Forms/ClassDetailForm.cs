@@ -38,7 +38,7 @@ namespace UniPlanner.Forms
         {
             // Set title
             this.Text = "Class Details";
-            lblTitle.Text = $"📚 {(_subjectItem != null ? _subjectItem.Name : _scheduleItem.Subject)}";
+            lblTitle.Text = $"📚 {(_subjectItem != null ? _subjectItem.Name : _scheduleItem.SubjectCode)}";
 
             // Apply color
             if (_subjectItem != null && !string.IsNullOrEmpty(_subjectItem.Color))
@@ -56,9 +56,9 @@ namespace UniPlanner.Forms
             // Populate details - prioritize SubjectName from schedule, then Subject.Name from SubjectItem
             string subjectName = !string.IsNullOrEmpty(_scheduleItem.SubjectName) 
                 ? _scheduleItem.SubjectName 
-                : (_subjectItem != null ? _subjectItem.Name : _scheduleItem.Subject);
+                : (_subjectItem != null ? _subjectItem.Name : _scheduleItem.SubjectCode);
             
-            string subjectCode = _subjectItem != null ? _subjectItem.Code : _scheduleItem.Subject;
+            string subjectCode = _subjectItem != null ? _subjectItem.Code : _scheduleItem.SubjectCode;
             
             lblSubjectValue.Text = subjectName;
             lblCodeValue.Text = subjectCode;

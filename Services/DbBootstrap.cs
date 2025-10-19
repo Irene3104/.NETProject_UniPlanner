@@ -78,13 +78,14 @@ namespace UniPlanner.Services
                         Priority TEXT NOT NULL DEFAULT 'Medium',
                         IsCompleted INTEGER NOT NULL DEFAULT 0,
                         Subject TEXT,
+                        SubjectName TEXT,
                         Description TEXT
                     );
 
                     CREATE TABLE IF NOT EXISTS Schedule(
                         Id INTEGER PRIMARY KEY AUTOINCREMENT,
                         DayOfWeek INTEGER NOT NULL,
-                        Subject TEXT NOT NULL,
+                        SubjectCode TEXT NOT NULL,
                         SubjectName TEXT,
                         StartTime TEXT NOT NULL,
                         EndTime TEXT NOT NULL,
@@ -97,7 +98,8 @@ namespace UniPlanner.Services
                         Title TEXT NOT NULL,
                         IsCompleted INTEGER NOT NULL DEFAULT 0,
                         Category TEXT DEFAULT 'Personal',
-                        CreatedDate TEXT NOT NULL
+                        CreatedDate TEXT NOT NULL,
+                        ModifiedDate TEXT
                     );
 
                     CREATE INDEX IF NOT EXISTS idx_subjects_code ON Subjects(Code);
@@ -106,6 +108,127 @@ namespace UniPlanner.Services
                     CREATE INDEX IF NOT EXISTS idx_todos_completed ON Todos(IsCompleted);
                 ";
                 cmd.ExecuteNonQuery();
+                
+                // Add SubjectName column to existing Tasks table if it doesn't exist
+                AddSubjectNameColumn(conn);
+                
+                // Add ModifiedDate column to existing Todos table if it doesn't exist
+                AddModifiedDateColumn(conn);
+                
+                // Migrate existing data to populate SubjectName
+                MigrateTaskSubjectNames(conn);
+            }
+        }
+
+        /// <summary>
+        /// Add SubjectName column to Tasks table if it doesn't exist
+        /// </summary>
+        private static void AddSubjectNameColumn(SQLiteConnection conn)
+        {
+            try
+            {
+                using (var cmd = conn.CreateCommand())
+                {
+                    // Check if column exists
+                    cmd.CommandText = "PRAGMA table_info(Tasks)";
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        bool hasSubjectName = false;
+                        while (reader.Read())
+                        {
+                            if (reader["name"].ToString() == "SubjectName")
+                            {
+                                hasSubjectName = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!hasSubjectName)
+                        {
+                            // Add the column
+                            using (var alterCmd = conn.CreateCommand())
+                            {
+                                alterCmd.CommandText = "ALTER TABLE Tasks ADD COLUMN SubjectName TEXT";
+                                alterCmd.ExecuteNonQuery();
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Column might already exist or table might be new
+            }
+        }
+
+        /// <summary>
+        /// Add ModifiedDate column to Todos table if it doesn't exist
+        /// </summary>
+        private static void AddModifiedDateColumn(SQLiteConnection conn)
+        {
+            try
+            {
+                using (var cmd = conn.CreateCommand())
+                {
+                    // Check if column exists
+                    cmd.CommandText = "PRAGMA table_info(Todos)";
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        bool hasModifiedDate = false;
+                        while (reader.Read())
+                        {
+                            if (reader["name"].ToString() == "ModifiedDate")
+                            {
+                                hasModifiedDate = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!hasModifiedDate)
+                        {
+                            // Add the column
+                            using (var alterCmd = conn.CreateCommand())
+                            {
+                                alterCmd.CommandText = "ALTER TABLE Todos ADD COLUMN ModifiedDate TEXT";
+                                alterCmd.ExecuteNonQuery();
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Column might already exist or table might be new
+            }
+        }
+
+        /// <summary>
+        /// Migrate existing Tasks to populate SubjectName from Subjects table
+        /// </summary>
+        private static void MigrateTaskSubjectNames(SQLiteConnection conn)
+        {
+            try
+            {
+                using (var cmd = conn.CreateCommand())
+                {
+                    // Update Tasks with SubjectName from Subjects table
+                    cmd.CommandText = @"
+                        UPDATE Tasks 
+                        SET SubjectName = (
+                            SELECT Name 
+                            FROM Subjects 
+                            WHERE Subjects.Code = Tasks.Subject
+                        )
+                        WHERE Subject IS NOT NULL 
+                        AND Subject != '' 
+                        AND (SubjectName IS NULL OR SubjectName = '')
+                    ";
+                    cmd.ExecuteNonQuery();
+                }
+            }
+            catch (Exception)
+            {
+                // Migration might fail if tables don't exist yet
             }
         }
 

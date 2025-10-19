@@ -21,6 +21,7 @@ namespace UniPlanner.Forms
         private void InitializeComponent()
         {
             this.panelHeader = new System.Windows.Forms.Panel();
+            this.btnRefresh = new System.Windows.Forms.Button();
             this.lblAppTitle = new System.Windows.Forms.Label();
             this.lblWelcome = new System.Windows.Forms.Label();
             this.panelMain = new System.Windows.Forms.Panel();
@@ -40,13 +41,12 @@ namespace UniPlanner.Forms
             this.colTaskSubject = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.colTaskPriority = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.grpTodoPreview = new System.Windows.Forms.GroupBox();
-            this.lstTodoPreview = new System.Windows.Forms.ListBox();
+            this.lstTodoPreview = new System.Windows.Forms.CheckedListBox();
             this.panelNav = new System.Windows.Forms.Panel();
             this.btnSchedule = new System.Windows.Forms.Button();
             this.btnAssignments = new System.Windows.Forms.Button();
             this.btnTodos = new System.Windows.Forms.Button();
             this.btnSubjects = new System.Windows.Forms.Button();
-            this.btnRefresh = new System.Windows.Forms.Button();
             this.panelHeader.SuspendLayout();
             this.panelMain.SuspendLayout();
             this.grpTimetable.SuspendLayout();
@@ -61,6 +61,7 @@ namespace UniPlanner.Forms
             // 
             this.panelHeader.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(255)))), ((int)(((byte)(255)))));
             this.panelHeader.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.panelHeader.Controls.Add(this.btnRefresh);
             this.panelHeader.Controls.Add(this.lblAppTitle);
             this.panelHeader.Controls.Add(this.lblWelcome);
             this.panelHeader.Dock = System.Windows.Forms.DockStyle.Top;
@@ -68,6 +69,21 @@ namespace UniPlanner.Forms
             this.panelHeader.Name = "panelHeader";
             this.panelHeader.Size = new System.Drawing.Size(1400, 80);
             this.panelHeader.TabIndex = 0;
+            // 
+            // btnRefresh
+            // 
+            this.btnRefresh.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnRefresh.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(52)))), ((int)(((byte)(152)))), ((int)(((byte)(219)))));
+            this.btnRefresh.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnRefresh.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
+            this.btnRefresh.ForeColor = System.Drawing.Color.White;
+            this.btnRefresh.Location = new System.Drawing.Point(1310, 20);
+            this.btnRefresh.Name = "btnRefresh";
+            this.btnRefresh.Size = new System.Drawing.Size(70, 40);
+            this.btnRefresh.TabIndex = 2;
+            this.btnRefresh.Text = "⟲";
+            this.btnRefresh.UseVisualStyleBackColor = false;
+            this.btnRefresh.Click += new System.EventHandler(this.btnRefresh_Click);
             // 
             // lblAppTitle
             // 
@@ -201,9 +217,11 @@ namespace UniPlanner.Forms
             this.grpTodayTasks.Controls.Add(this.lstTodayTasks);
             this.grpTodayTasks.Dock = System.Windows.Forms.DockStyle.Top;
             this.grpTodayTasks.Font = new System.Drawing.Font("Segoe UI Semibold", 10F, System.Drawing.FontStyle.Bold);
-            this.grpTodayTasks.Location = new System.Drawing.Point(10, 280);
+            this.grpTodayTasks.Location = new System.Drawing.Point(10, 285);
+            this.grpTodayTasks.Margin = new System.Windows.Forms.Padding(0, 15, 0, 15);
             this.grpTodayTasks.Name = "grpTodayTasks";
-            this.grpTodayTasks.Size = new System.Drawing.Size(330, 180);
+            this.grpTodayTasks.Padding = new System.Windows.Forms.Padding(16, 22, 16, 18);
+            this.grpTodayTasks.Size = new System.Drawing.Size(330, 195);
             this.grpTodayTasks.TabIndex = 1;
             this.grpTodayTasks.TabStop = false;
             this.grpTodayTasks.Text = "📝 Today's Assignments";
@@ -219,9 +237,9 @@ namespace UniPlanner.Forms
             this.lstTodayTasks.FullRowSelect = true;
             this.lstTodayTasks.GridLines = true;
             this.lstTodayTasks.HideSelection = false;
-            this.lstTodayTasks.Location = new System.Drawing.Point(3, 21);
+            this.lstTodayTasks.Location = new System.Drawing.Point(16, 22);
             this.lstTodayTasks.Name = "lstTodayTasks";
-            this.lstTodayTasks.Size = new System.Drawing.Size(324, 176);
+            this.lstTodayTasks.Size = new System.Drawing.Size(298, 155);
             this.lstTodayTasks.TabIndex = 0;
             this.lstTodayTasks.UseCompatibleStateImageBehavior = false;
             this.lstTodayTasks.View = System.Windows.Forms.View.Details;
@@ -247,37 +265,40 @@ namespace UniPlanner.Forms
             this.grpTodoPreview.Controls.Add(this.lstTodoPreview);
             this.grpTodoPreview.Dock = System.Windows.Forms.DockStyle.Fill;
             this.grpTodoPreview.Font = new System.Drawing.Font("Segoe UI Semibold", 10F, System.Drawing.FontStyle.Bold);
-            this.grpTodoPreview.Location = new System.Drawing.Point(10, 460);
+            this.grpTodoPreview.Location = new System.Drawing.Point(10, 480);
             this.grpTodoPreview.Name = "grpTodoPreview";
-            this.grpTodoPreview.Size = new System.Drawing.Size(330, 200);
+            this.grpTodoPreview.Padding = new System.Windows.Forms.Padding(16, 22, 16, 18);
+            this.grpTodoPreview.Size = new System.Drawing.Size(330, 180);
             this.grpTodoPreview.TabIndex = 2;
             this.grpTodoPreview.TabStop = false;
             this.grpTodoPreview.Text = "✓ Personal To-Do";
             // 
             // lstTodoPreview
             // 
+            this.lstTodoPreview.CheckOnClick = true;
             this.lstTodoPreview.Dock = System.Windows.Forms.DockStyle.Fill;
             this.lstTodoPreview.Font = new System.Drawing.Font("Segoe UI", 9.75F);
             this.lstTodoPreview.FormattingEnabled = true;
-            this.lstTodoPreview.ItemHeight = 17;
-            this.lstTodoPreview.Location = new System.Drawing.Point(3, 21);
+            this.lstTodoPreview.Location = new System.Drawing.Point(16, 22);
             this.lstTodoPreview.Name = "lstTodoPreview";
-            this.lstTodoPreview.Size = new System.Drawing.Size(324, 206);
+            this.lstTodoPreview.Size = new System.Drawing.Size(298, 95);
             this.lstTodoPreview.TabIndex = 0;
+            this.lstTodoPreview.ItemCheck += new System.Windows.Forms.ItemCheckEventHandler(this.lstTodoPreview_ItemCheck);
+            this.lstTodoPreview.SelectedIndexChanged += new System.EventHandler(this.lstTodoPreview_SelectedIndexChanged);
             // 
             // panelNav
             // 
             this.panelNav.BackColor = System.Drawing.Color.White;
             this.panelNav.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.panelNav.Controls.Add(this.btnSubjects);
             this.panelNav.Controls.Add(this.btnSchedule);
             this.panelNav.Controls.Add(this.btnAssignments);
             this.panelNav.Controls.Add(this.btnTodos);
-            this.panelNav.Controls.Add(this.btnSubjects);
-            this.panelNav.Controls.Add(this.btnRefresh);
             this.panelNav.Dock = System.Windows.Forms.DockStyle.Top;
             this.panelNav.Location = new System.Drawing.Point(10, 10);
             this.panelNav.Name = "panelNav";
-            this.panelNav.Size = new System.Drawing.Size(330, 270);
+            this.panelNav.Padding = new System.Windows.Forms.Padding(20, 24, 20, 24);
+            this.panelNav.Size = new System.Drawing.Size(330, 275);
             this.panelNav.TabIndex = 0;
             // 
             // btnSchedule
@@ -286,9 +307,9 @@ namespace UniPlanner.Forms
             this.btnSchedule.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnSchedule.Font = new System.Drawing.Font("Segoe UI Semibold", 11F, System.Drawing.FontStyle.Bold);
             this.btnSchedule.ForeColor = System.Drawing.Color.White;
-            this.btnSchedule.Location = new System.Drawing.Point(15, 15);
+            this.btnSchedule.Location = new System.Drawing.Point(20, 85);
             this.btnSchedule.Name = "btnSchedule";
-            this.btnSchedule.Size = new System.Drawing.Size(300, 45);
+            this.btnSchedule.Size = new System.Drawing.Size(290, 48);
             this.btnSchedule.TabIndex = 0;
             this.btnSchedule.Text = "📅 Manage Class Schedule";
             this.btnSchedule.UseVisualStyleBackColor = false;
@@ -300,9 +321,9 @@ namespace UniPlanner.Forms
             this.btnAssignments.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnAssignments.Font = new System.Drawing.Font("Segoe UI Semibold", 11F, System.Drawing.FontStyle.Bold);
             this.btnAssignments.ForeColor = System.Drawing.Color.White;
-            this.btnAssignments.Location = new System.Drawing.Point(15, 70);
+            this.btnAssignments.Location = new System.Drawing.Point(20, 146);
             this.btnAssignments.Name = "btnAssignments";
-            this.btnAssignments.Size = new System.Drawing.Size(300, 45);
+            this.btnAssignments.Size = new System.Drawing.Size(290, 48);
             this.btnAssignments.TabIndex = 1;
             this.btnAssignments.Text = "📝 Manage Assignments";
             this.btnAssignments.UseVisualStyleBackColor = false;
@@ -314,11 +335,11 @@ namespace UniPlanner.Forms
             this.btnTodos.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnTodos.Font = new System.Drawing.Font("Segoe UI Semibold", 11F, System.Drawing.FontStyle.Bold);
             this.btnTodos.ForeColor = System.Drawing.Color.White;
-            this.btnTodos.Location = new System.Drawing.Point(15, 115);
+            this.btnTodos.Location = new System.Drawing.Point(20, 207);
             this.btnTodos.Name = "btnTodos";
-            this.btnTodos.Size = new System.Drawing.Size(300, 45);
+            this.btnTodos.Size = new System.Drawing.Size(290, 48);
             this.btnTodos.TabIndex = 2;
-            this.btnTodos.Text = "✓ Manage Personal To-Do";
+            this.btnTodos.Text = "✓ Manage To-Do List";
             this.btnTodos.UseVisualStyleBackColor = false;
             this.btnTodos.Click += new System.EventHandler(this.btnTodos_Click);
             // 
@@ -326,28 +347,15 @@ namespace UniPlanner.Forms
             // 
             this.btnSubjects.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(230)))), ((int)(((byte)(126)))), ((int)(((byte)(34)))));
             this.btnSubjects.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnSubjects.Font = new System.Drawing.Font("Segoe UI Semibold", 11F, System.Drawing.FontStyle.Bold);
+            this.btnSubjects.Font = new System.Drawing.Font("Segoe UI Semibold", 12F, System.Drawing.FontStyle.Bold);
             this.btnSubjects.ForeColor = System.Drawing.Color.White;
-            this.btnSubjects.Location = new System.Drawing.Point(15, 165);
+            this.btnSubjects.Location = new System.Drawing.Point(20, 24);
             this.btnSubjects.Name = "btnSubjects";
-            this.btnSubjects.Size = new System.Drawing.Size(300, 45);
+            this.btnSubjects.Size = new System.Drawing.Size(290, 55);
             this.btnSubjects.TabIndex = 3;
             this.btnSubjects.Text = "📚 Manage Subjects";
             this.btnSubjects.UseVisualStyleBackColor = false;
             this.btnSubjects.Click += new System.EventHandler(this.btnSubjects_Click);
-            // 
-            // btnRefresh
-            // 
-            this.btnRefresh.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(236)))), ((int)(((byte)(240)))), ((int)(((byte)(241)))));
-            this.btnRefresh.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnRefresh.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.btnRefresh.Location = new System.Drawing.Point(15, 220);
-            this.btnRefresh.Name = "btnRefresh";
-            this.btnRefresh.Size = new System.Drawing.Size(300, 35);
-            this.btnRefresh.TabIndex = 4;
-            this.btnRefresh.Text = "🔄 Refresh Dashboard";
-            this.btnRefresh.UseVisualStyleBackColor = false;
-            this.btnRefresh.Click += new System.EventHandler(this.btnRefresh_Click);
             // 
             // MainForm
             // 
@@ -379,6 +387,7 @@ namespace UniPlanner.Forms
         #endregion
 
         private System.Windows.Forms.Panel panelHeader;
+        private System.Windows.Forms.Button btnRefresh;
         private System.Windows.Forms.Label lblAppTitle;
         private System.Windows.Forms.Label lblWelcome;
         private System.Windows.Forms.Panel panelMain;
@@ -391,13 +400,12 @@ namespace UniPlanner.Forms
         private System.Windows.Forms.ColumnHeader colTaskSubject;
         private System.Windows.Forms.ColumnHeader colTaskPriority;
         private System.Windows.Forms.GroupBox grpTodoPreview;
-        private System.Windows.Forms.ListBox lstTodoPreview;
+        private System.Windows.Forms.CheckedListBox lstTodoPreview;
         private System.Windows.Forms.Panel panelNav;
         private System.Windows.Forms.Button btnSchedule;
         private System.Windows.Forms.Button btnAssignments;
         private System.Windows.Forms.Button btnTodos;
         private System.Windows.Forms.Button btnSubjects;
-        private System.Windows.Forms.Button btnRefresh;
         private System.Windows.Forms.DataGridViewTextBoxColumn colTime;
         private System.Windows.Forms.DataGridViewTextBoxColumn colMonday;
         private System.Windows.Forms.DataGridViewTextBoxColumn colTuesday;
